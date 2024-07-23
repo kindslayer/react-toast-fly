@@ -14,6 +14,6 @@ ToastFly is a lightweight and customizable React toast notification library desi
 To install ToastFly, use npm or yarn:
 
 ```bash
-npm install toastfly
+npm install react-toast-fly
 # or
-yarn add toastfly
+yarn add react-toast-fly

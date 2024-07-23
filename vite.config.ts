@@ -7,7 +7,7 @@ export default defineConfig({
 	build: {
 		lib: {
 			entry: path.resolve(__dirname, "index.ts"),
-			name: "ReactToastfly",
+			name: "ReactToastFly",
 			fileName: (format) => `index.${format}.js`,
 		},
 		rollupOptions: {
