@@ -1,3 +1,5 @@
+'use client'
+
 import {ReactNode, useState} from "react";
 import {Progress, ToastType} from "@/Toast/index";
 import ToastContainer from "@/Toast/ToastContainer";
