@@ -1,3 +1,5 @@
+'use client'
+
 import InfoIcon from "/pending.svg"
 import ErrorIcon from "/failed.svg"
 import SuccessIcon from "/success.svg"
