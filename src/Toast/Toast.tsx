@@ -86,7 +86,7 @@ const Toast = ({item}: { item: ToastItemType }) => {
 	return (
 		<div
 			className={cn(
-				'toast select-none pointer-events-auto group-hover/stacked:opacity-100 group-hover/stacked:scale-100 group-hover/stacked:translate-y-0',
+				'toast text-slate-900 select-none pointer-events-auto group-hover/stacked:opacity-100 group-hover/stacked:scale-100 group-hover/stacked:translate-y-0',
 				item.progress === Progress.Circular && 'border-b-2 border-slate-300'
 			)}
 			onMouseEnter={() => setHover(true)}
@@ -97,7 +97,7 @@ const Toast = ({item}: { item: ToastItemType }) => {
 					<ToastIcon />
 				</div>
 
-				<div className="toast--title pt-1 px-3 text-start grow">{item.id} {item.title}</div>
+				<div className="toast--title pt-1 px-3 text-start grow">{item.title}</div>
 
 				<div className="toast--close shrink-0">
 					<ToastCloseButton item={item} />
