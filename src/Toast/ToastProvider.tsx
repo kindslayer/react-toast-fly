@@ -2,7 +2,14 @@ import {ReactNode, useState} from "react";
 import {Progress, ToastType} from "@/Toast/index";
 import ToastContainer from "@/Toast/ToastContainer";
 import ToastContext, {defaultToastOptions} from "@/Toast/ToastContext";
-import {DeleteToastFunction, GlobalContextOptionType, PartialToastOptions, PushToastFunction, ToastItemType, UpdateToastFunction} from "@/Toast/types";
+import {
+	DeleteToastFunction,
+	GlobalContextOptionType,
+	PartialToastOptions,
+	PushToastFunction,
+	ToastItemType,
+	UpdateToastFunction
+} from "@/Toast/types";
 
 const ToastProvider = ({globalOption = {}, children}: {
 	globalOption?: PartialToastOptions,
@@ -16,7 +23,7 @@ const ToastProvider = ({globalOption = {}, children}: {
 			id: Math.random().toString(36).substring(2, 14),
 			title: option.title,
 			type: option.type || ToastType.INFO,
-			duration: _duration,
+			duration: option.duration || _duration,
 			content: option.content,
 			progress: option.progress || Progress.NONE,
 		};

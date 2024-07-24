@@ -1,6 +1,7 @@
 # ToastFly
 
-ToastFly is a lightweight and customizable React toast notification library designed to deliver smooth and stylish notifications in your React applications.
+ToastFly is a lightweight and customizable React toast notification library designed to deliver smooth and stylish
+notifications in your React applications.
 
 ## Features
 
@@ -17,3 +18,53 @@ To install ToastFly, use npm or yarn:
 npm install react-toast-fly
 # or
 yarn add react-toast-fly
+```
+
+```typescript jsx
+<ToastProvider
+	globalOption={{
+		turn: true,
+		duration: 1000,
+		isStacked: true,
+		successIcon: SuccessIconComponent,
+		warningIcon: WarningIconComponent,
+		errorIcon: ErrorIconComponent,
+		infoIcon: InfoIconComponent,
+		direction: 'rtl' // ltr
+	}}
+>
+	{/*- children -*/}
+</ToastProvider>
+```
+
+```typescript jsx
+    <button
+	onClick={() => {
+		push({
+			title: 'test',
+			duration: 1000,
+			progress: Progress.Both,
+			type: ToastType.SUCCESS,
+			content: 'example content',
+		})
+	}}
+>Show</button>
+```
+
+```typescript jsx
+    const ContentComponent = ()=>{
+        return <div><strong>Content</strong></div>
+    }
+	
+    <button
+	onClick={() => {
+		push({
+			title: 'test',
+			duration: 1000,
+			progress: Progress.Both,
+			type: ToastType.SUCCESS,
+			content:ContentComponent,
+		})
+	}}
+>Show</button>
+```
