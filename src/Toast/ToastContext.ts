@@ -1,6 +1,6 @@
-import InfoIcon from "../../public/pending.svg"
-import ErrorIcon from "../../public/failed.svg"
-import SuccessIcon from "../../public/success.svg"
+import InfoIcon from "/pending.svg"
+import ErrorIcon from "/failed.svg"
+import SuccessIcon from "/success.svg"
 import {createContext, useContext} from "react";
 import {GlobalContextOptionType, GlobalToastOptions} from "@/Toast/types";
 

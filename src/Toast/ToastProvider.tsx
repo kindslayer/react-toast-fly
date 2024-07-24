@@ -4,8 +4,6 @@ import ToastContainer from "@/Toast/ToastContainer";
 import ToastContext, {defaultToastOptions} from "@/Toast/ToastContext";
 import {DeleteToastFunction, GlobalContextOptionType, PartialToastOptions, PushToastFunction, ToastItemType, UpdateToastFunction} from "@/Toast/types";
 
-import '@/Toast/index.css'
-
 const ToastProvider = ({globalOption = {}, children}: {
 	globalOption?: PartialToastOptions,
 	children: ReactNode

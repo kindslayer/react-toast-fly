@@ -21,23 +21,24 @@
     .toast-container-stacked > .toast {
         @apply row-start-1 w-full col-start-1;
 
-        z-index: 45;
+        z-index: 1999999995;
         transform: translateY(-20%) scale(.6);
     }
 
     .toast-container > .toast:nth-child(1) {
-        @apply transition-all z-50 scale-100 translate-y-0;
+        z-index: 2000000000;
+        @apply transition-all scale-100 translate-y-0;
         box-shadow: 0 8px 12px -12px #c5c5c5, 0 -8px 12px -12px #c5c5c5, 0 0 5px -3px #c5c5c5;
     }
 
     .toast-container-stacked > .toast:nth-child(2) {
-        z-index: 49;
+        z-index: 1999999999;
         transition-duration: 100ms;
         transform: translateY(-12%) scale(.9);
     }
 
     .toast-container-stacked > .toast:nth-child(3) {
-        z-index: 48;
+        z-index: 1999999998;
         transition-duration: 400ms;
         transform: translateY(-24%) scale(.8);
     }
