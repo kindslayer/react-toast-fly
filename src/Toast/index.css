@@ -4,6 +4,8 @@
 
 @layer components {
     .toast-container {
+        z-index: 2100000000;
+
         @apply fixed flex-col-reverse flex bottom-3 top-3 max-w-xs pointer-events-none
         max-sm:min-w-full max-sm:start-0 max-sm:px-2
         sm:min-w-96 sm:start-3;
