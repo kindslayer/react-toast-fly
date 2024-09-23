@@ -106,7 +106,7 @@ const Toast = ({ item }: { item: ToastItemType }) => {
 				<div className="toast--title pt-1 px-3 text-start grow">{item.title}</div>
 
 				<div className="toast--close shrink-0">
-					<ToastCloseButton elapsedTime={elapsedTimeRef.current} item={item} isHover={isHover}/>
+					<ToastCloseButton lastUpdateTime={lastUpdateTimeRef.current} elapsedTimeRef={elapsedTimeRef.current} item={item} isHover={isHover}/>
 				</div>
 			</div>
 
