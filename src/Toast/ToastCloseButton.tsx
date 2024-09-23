@@ -58,6 +58,31 @@ const ToastCloseButton = ({item, isHover, elapsedTimeRef, lastUpdateTime}: {
             };
         }, [hasProgress, updateProgress, isHover]);
 
+    useEffect(() => {
+        const itemKeys = Object.keys(contextOption.items);
+        const relevantItemKey = contextOption.isStacked ? itemKeys[0] : itemKeys[itemKeys.length - 1];
+        const isActiveToast = relevantItemKey === item.id;
+
+        if (isActiveToast) {
+            // Start or resume the animation for the active toast
+            if (!animationFrameRef.current) {
+                animationFrameRef.current = requestAnimationFrame(updateProgress);
+            }
+        } else {
+            // Pause the animation for non-active toasts
+            if (animationFrameRef.current) {
+                cancelAnimationFrame(animationFrameRef.current);
+                animationFrameRef.current = null;
+            }
+        }
+
+        return () => {
+            if (animationFrameRef.current) {
+                cancelAnimationFrame(animationFrameRef.current);
+            }
+        };
+    }, [contextOption.items, item.id, contextOption.isStacked, updateProgress]);
+
         return (
             <button
                 type="button"

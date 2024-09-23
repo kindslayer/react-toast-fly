@@ -8,12 +8,10 @@ import { ReactElement, ReactNode, useEffect, useRef, useState, useCallback } fro
 const Toast = ({ item }: { item: ToastItemType }) => {
 	const contextOption = _useToastContext();
 	const [isHover, setHover] = useState<boolean>(false);
-	// const remainingDurationRef = useRef<number>(item.duration);
 	const elapsedTimeRef = useRef<number>(0);
 	const lastUpdateTimeRef = useRef<number>(performance.now());
 	const animationFrameRef = useRef<number | null>(null);
 	const progressBarRef = useRef<HTMLDivElement>(null);
-	console.log(isHover)
 
 	const ToastIcon = (): ReactElement => {
 		const Icon = contextOption[`${item.type}Icon`];
@@ -49,17 +47,26 @@ const Toast = ({ item }: { item: ToastItemType }) => {
 			const deltaTime = currentTime - lastUpdateTimeRef.current;
 			lastUpdateTimeRef.current = currentTime;
 
-			elapsedTimeRef.current += deltaTime;
+			const itemKeys = Object.keys(contextOption.items);
+			const relevantItemKey = contextOption.isStacked ? itemKeys[0] : itemKeys[itemKeys.length - 1];
+			const isActiveToast = relevantItemKey === item.id;
 
-			if (elapsedTimeRef.current >= item.duration) {
-				contextOption.deleteToast(item.id);
-			} else {
-				const progressPercentage = Math.min(100, (elapsedTimeRef.current / item.duration) * 100);
+			if (isActiveToast) {
+				elapsedTimeRef.current += deltaTime;
 
-				if (progressBarRef.current) {
-					progressBarRef.current.style.width = `${100 - progressPercentage}%`;
+				if (elapsedTimeRef.current >= item.duration) {
+					contextOption.deleteToast(item.id);
+				} else {
+					const progressPercentage = Math.min(100, (elapsedTimeRef.current / item.duration) * 100);
+
+					if (progressBarRef.current) {
+						progressBarRef.current.style.width = `${100 - progressPercentage}%`;
+					}
+
+					animationFrameRef.current = requestAnimationFrame(updateProgress);
 				}
-
+			} else {
+				// If not active, just request the next frame without updating the elapsed time
 				animationFrameRef.current = requestAnimationFrame(updateProgress);
 			}
 		} else {
@@ -81,13 +88,27 @@ const Toast = ({ item }: { item: ToastItemType }) => {
 	useEffect(() => {
 		const itemKeys = Object.keys(contextOption.items);
 		const relevantItemKey = contextOption.isStacked ? itemKeys[0] : itemKeys[itemKeys.length - 1];
+		const isActiveToast = relevantItemKey === item.id;
 
-		if ((contextOption.isStacked || (!contextOption.isStacked && contextOption.turn)) && relevantItemKey !== item.id) {
+		if (isActiveToast) {
+			// Start or resume the animation for the active toast
+			if (!animationFrameRef.current) {
+				animationFrameRef.current = requestAnimationFrame(updateProgress);
+			}
+		} else {
+			// Pause the animation for non-active toasts
+			if (animationFrameRef.current) {
+				cancelAnimationFrame(animationFrameRef.current);
+				animationFrameRef.current = null;
+			}
+		}
+
+		return () => {
 			if (animationFrameRef.current) {
 				cancelAnimationFrame(animationFrameRef.current);
 			}
-		}
-	}, [contextOption.items, item.id, contextOption.isStacked, contextOption.turn]);
+		};
+	}, [contextOption.items, item.id, contextOption.isStacked, updateProgress]);
 
 	return (
 		<div
