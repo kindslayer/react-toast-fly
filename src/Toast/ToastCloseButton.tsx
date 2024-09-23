@@ -4,11 +4,11 @@ import {ToastItemType} from "@/Toast/types";
 import ToastContext from "@/Toast/ToastContext";
 import {Progress, ToastType} from "@/Toast/index";
 
-const ToastCloseButton = ({item, isHover, elapsedTimeRef, lastUpdateTime}: {
+const ToastCloseButton = ({item, isHover, elapsedTimeRef, activeStartTime}: {
         item: ToastItemType;
         isHover: boolean;
         elapsedTimeRef: number,
-        lastUpdateTime: number
+        activeStartTime: number | null
     }) => {
         const contextOption = useContext(ToastContext);
         const hasProgress = [Progress.Circular, Progress.Both].includes(item.progress);
@@ -26,25 +26,46 @@ const ToastCloseButton = ({item, isHover, elapsedTimeRef, lastUpdateTime}: {
         const updateProgress = useCallback(() => {
             if (!isHover) {
                 const currentTime = performance.now();
-                const deltaTime = currentTime - lastUpdateTime;
-                lastUpdateTime = currentTime;
 
-                elapsedTimeRef += deltaTime;
+                const itemKeys = Object.keys(contextOption.items);
+                const relevantItemKey = contextOption.isStacked
+                    ? itemKeys[0]
+                    : itemKeys[itemKeys.length - 1];
+                const isActiveToast = relevantItemKey === item.id;
 
-                if (elapsedTimeRef >= item.duration) {
-                    contextOption.deleteToast(item.id);
-                } else {
-                    const progressPercentage = Math.min(100, 100 - (elapsedTimeRef / (contextOption.duration || item.duration)) * 100)
-                    if (circleRef.current) {
-                        circleRef.current.style.strokeDashoffset = `${100 - progressPercentage}`;
+                if (isActiveToast) {
+                    if (activeStartTime === null) {
+                        // If the toast just became active, set the active start time
+                        activeStartTime = currentTime;
                     }
-                    animationFrameRef.current = requestAnimationFrame(updateProgress);
+
+                    // Calculate total elapsed time (previous elapsed time + current active time)
+                    const activeElapsedTime = currentTime - activeStartTime;
+                    const totalElapsedTime = elapsedTimeRef + activeElapsedTime;
+
+                    if (totalElapsedTime >= item.duration) {
+                        contextOption.deleteToast(item.id);
+                    } else {
+                        const progressPercentage = Math.min(
+                            100,
+                            100 - (totalElapsedTime / item.duration) * 100
+                        );
+
+                        if (circleRef.current) {
+                            circleRef.current.style.strokeDashoffset = `${100 - progressPercentage}`;
+                        }
+
+
+                        animationFrameRef.current = requestAnimationFrame(updateProgress);
+                    }
+                } else {
+                    // Stop the timer for non-active toasts
+                    cancelAnimationFrame(animationFrameRef.current!);
+                    activeStartTime = null; // Reset active start time when inactive
                 }
             } else {
-                lastUpdateTime = performance.now(); // Reset last update time when hovering
-                animationFrameRef.current = requestAnimationFrame(updateProgress);
             }
-        }, [contextOption, item.id, item.duration, isHover]);
+    }, [contextOption, item.id, item.duration, isHover]);
 
         useEffect(() => {
             if (hasProgress) {
