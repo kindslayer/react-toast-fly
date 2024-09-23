@@ -1,14 +1,19 @@
-import {cn} from "@/utils";
-import {ToastItemType} from "@/Toast/types";
-import {Progress, ToastType} from "@/Toast/index";
-import {_useToastContext} from "@/Toast/ToastContext";
+import { cn } from "@/utils";
+import { ToastItemType } from "@/Toast/types";
+import { Progress, ToastType } from "@/Toast/index";
+import { _useToastContext } from "@/Toast/ToastContext";
 import ToastCloseButton from "@/Toast/ToastCloseButton";
-import {ReactElement, ReactNode, useEffect, useMemo, useRef, useState} from "react";
+import { ReactElement, ReactNode, useEffect, useRef, useState, useCallback } from "react";
 
-const Toast = ({item}: { item: ToastItemType }) => {
+const Toast = ({ item }: { item: ToastItemType }) => {
 	const contextOption = _useToastContext();
-	const intervalRef = useRef<NodeJS.Timeout | null>(null);
 	const [isHover, setHover] = useState<boolean>(false);
+	// const remainingDurationRef = useRef<number>(item.duration);
+	const elapsedTimeRef = useRef<number>(0);
+	const lastUpdateTimeRef = useRef<number>(performance.now());
+	const animationFrameRef = useRef<number | null>(null);
+	const progressBarRef = useRef<HTMLDivElement>(null);
+	console.log(isHover)
 
 	const ToastIcon = (): ReactElement => {
 		const Icon = contextOption[`${item.type}Icon`];
@@ -31,11 +36,6 @@ const Toast = ({item}: { item: ToastItemType }) => {
 		}
 	};
 
-	const progressPercentage = useMemo(
-		() => Math.max(0, (item.duration / (contextOption.duration || item.duration)) * 100),
-		[item.duration, contextOption.duration]
-	);
-
 	const toastTypeToColorClass = {
 		[ToastType.SUCCESS]: 'bg-emerald-400',
 		[ToastType.INFO]: 'bg-blue-400',
@@ -43,45 +43,51 @@ const Toast = ({item}: { item: ToastItemType }) => {
 		[ToastType.ERROR]: 'bg-rose-400',
 	};
 
-	useEffect(() => {
-		if (intervalRef.current) {
-			clearInterval(intervalRef.current);
-		}
+	const updateProgress = useCallback(() => {
+		if (!isHover) {
+			const currentTime = performance.now();
+			const deltaTime = currentTime - lastUpdateTimeRef.current;
+			lastUpdateTimeRef.current = currentTime;
 
-		intervalRef.current = setInterval(() => {
-			if (!isHover) {
-				const currentItem = contextOption.items[item.id];
+			elapsedTimeRef.current += deltaTime;
 
-				if (currentItem.duration <= -100) {
-					clearInterval(intervalRef.current!);
-					contextOption.deleteToast(item.id);
-				} else {
-					contextOption.updateToast({
-						...currentItem,
-						duration: currentItem.duration - 100
-					});
+			if (elapsedTimeRef.current >= item.duration) {
+				contextOption.deleteToast(item.id);
+			} else {
+				const progressPercentage = Math.min(100, (elapsedTimeRef.current / item.duration) * 100);
+
+				if (progressBarRef.current) {
+					progressBarRef.current.style.width = `${100 - progressPercentage}%`;
 				}
+
+				animationFrameRef.current = requestAnimationFrame(updateProgress);
 			}
-		}, 100);
+		} else {
+			lastUpdateTimeRef.current = performance.now(); // Reset last update time when hovering
+			animationFrameRef.current = requestAnimationFrame(updateProgress);
+		}
+	}, [contextOption, item.id, item.duration, isHover]);
+
+	useEffect(() => {
+		animationFrameRef.current = requestAnimationFrame(updateProgress);
 
 		return () => {
-			if (intervalRef.current) {
-				clearInterval(intervalRef.current);
+			if (animationFrameRef.current) {
+				cancelAnimationFrame(animationFrameRef.current);
 			}
 		};
-	}, [contextOption, item.id, isHover]);
+	}, [updateProgress]);
 
 	useEffect(() => {
 		const itemKeys = Object.keys(contextOption.items);
 		const relevantItemKey = contextOption.isStacked ? itemKeys[0] : itemKeys[itemKeys.length - 1];
 
-		if (relevantItemKey && contextOption.isStacked || (!contextOption.isStacked && contextOption.turn)) {
-			if (relevantItemKey !== item.id) {
-				intervalRef.current && clearInterval(intervalRef.current);
+		if ((contextOption.isStacked || (!contextOption.isStacked && contextOption.turn)) && relevantItemKey !== item.id) {
+			if (animationFrameRef.current) {
+				cancelAnimationFrame(animationFrameRef.current);
 			}
 		}
-	}, [contextOption.items, item.id, contextOption.isStacked]);
-
+	}, [contextOption.items, item.id, contextOption.isStacked, contextOption.turn]);
 
 	return (
 		<div
@@ -100,23 +106,24 @@ const Toast = ({item}: { item: ToastItemType }) => {
 				<div className="toast--title pt-1 px-3 text-start grow">{item.title}</div>
 
 				<div className="toast--close shrink-0">
-					<ToastCloseButton item={item} />
+					<ToastCloseButton elapsedTime={elapsedTimeRef.current} item={item} isHover={isHover}/>
 				</div>
 			</div>
 
 			<ToastContent />
 
-			{[Progress.Linear, Progress.Both].includes(item.progress) &&
-				(<div className="toast--progress" role="progressbar">
+			{[Progress.Linear, Progress.Both].includes(item.progress) && (
+				<div className="toast--progress" role="progressbar">
 					<div
+						ref={progressBarRef}
 						className={cn(
 							'toast--progress--bar',
 							toastTypeToColorClass[item.type],
 						)}
-						style={{width: `${progressPercentage <= 0 ? 0 : progressPercentage}%`}}
+						style={{ width: '100%' }}
 					></div>
-				</div>)
-			}
+				</div>
+			)}
 		</div>
 	);
 };
