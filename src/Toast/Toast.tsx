@@ -8,11 +8,8 @@ import { ReactElement, ReactNode, useEffect, useRef, useState, useCallback } fro
 const Toast = ({ item }: { item: ToastItemType }) => {
 	const contextOption = _useToastContext();
 	const [isHover, setHover] = useState<boolean>(false);
-	const elapsedTimeRef = useRef<number>(0);
-	const lastUpdateTimeRef = useRef<number>(performance.now());
-	const animationFrameRef = useRef<number | null>(null);
 	const progressBarRef = useRef<HTMLDivElement>(null);
-	const activeStartTimeRef = useRef<number | null>(null);
+	const { animationFrameRef, elapsedTimeRef, activeStartTimeRef, lastUpdateTimeRef } = useRefs();
 
 	const ToastIcon = (): ReactElement => {
 		const Icon = contextOption[`${item.type}Icon`];
@@ -43,54 +40,53 @@ const Toast = ({ item }: { item: ToastItemType }) => {
 	};
 
 	const updateProgress = useCallback(() => {
-		if (!isHover) {
-			const currentTime = performance.now();
-			lastUpdateTimeRef.current = currentTime;
+		if (isHover) {
+			lastUpdateTimeRef.current = performance.now();
+			return;
+		}
 
-			const itemKeys = Object.keys(contextOption.items);
-			const relevantItemKey = contextOption.isStacked
-				? itemKeys[0]
-				: itemKeys[itemKeys.length - 1];
-			const isActiveToast = relevantItemKey === item.id;
+		const currentTime = performance.now();
+		lastUpdateTimeRef.current = currentTime;
 
-			if (isActiveToast) {
-				if (activeStartTimeRef.current === null) {
-					// If the toast just became active, set the active start time
-					activeStartTimeRef.current = currentTime;
-				}
-
-				// Calculate total elapsed time (previous elapsed time + current active time)
-				const activeElapsedTime = currentTime - activeStartTimeRef.current;
-				const totalElapsedTime = elapsedTimeRef.current + activeElapsedTime;
-
-				if (totalElapsedTime >= item.duration) {
-					contextOption.deleteToast(item.id);
-				} else {
-					const progressPercentage = Math.min(
-						100,
-						(totalElapsedTime / item.duration) * 100
-					);
-
-					if (progressBarRef.current) {
-						progressBarRef.current.style.width = `${100 - progressPercentage}%`;
-					}
-
-					animationFrameRef.current = requestAnimationFrame(updateProgress);
-				}
-			} else {
-				// Stop the timer for non-active toasts
-				cancelAnimationFrame(animationFrameRef.current!);
-				activeStartTimeRef.current = null; // Reset active start time when inactive
-			}
+		const relevantItemKey = getRelevantItemKey(contextOption);
+		if (relevantItemKey === item.id) {
+			handleActiveToast(currentTime);
 		} else {
-			lastUpdateTimeRef.current = performance.now(); // Reset last update time when hovering
+			cancelAnimationFrame(animationFrameRef.current!);
+			activeStartTimeRef.current = null;
 		}
 	}, [contextOption, item.id, item.duration, isHover]);
 
-	useEffect(() => {
-		// Start the progress tracking on mount
-		animationFrameRef.current = requestAnimationFrame(updateProgress);
+	const handleActiveToast = (currentTime: number) => {
+		if (activeStartTimeRef.current === null) {
+			activeStartTimeRef.current = currentTime;
+		}
 
+		const activeElapsedTime = currentTime - activeStartTimeRef.current;
+		const totalElapsedTime = elapsedTimeRef.current + activeElapsedTime;
+
+		if (totalElapsedTime >= item.duration) {
+			contextOption.deleteToast(item.id);
+		} else {
+			updateProgressBar(totalElapsedTime, item.duration);
+			animationFrameRef.current = requestAnimationFrame(updateProgress);
+		}
+	};
+
+	const updateProgressBar = (elapsed: number, duration: number) => {
+		const progressPercentage = Math.min(100, (elapsed / duration) * 100);
+		if (progressBarRef.current) {
+			progressBarRef.current.style.width = `${100 - progressPercentage}%`;
+		}
+	};
+
+	const getRelevantItemKey = (contextOption: any) => {
+		const itemKeys = Object.keys(contextOption.items);
+		return contextOption.isStacked ? itemKeys[0] : itemKeys[itemKeys.length - 1];
+	};
+
+	useEffect(() => {
+		animationFrameRef.current = requestAnimationFrame(updateProgress);
 		return () => {
 			if (animationFrameRef.current) {
 				cancelAnimationFrame(animationFrameRef.current);
@@ -99,31 +95,11 @@ const Toast = ({ item }: { item: ToastItemType }) => {
 	}, [updateProgress]);
 
 	useEffect(() => {
-		const itemKeys = Object.keys(contextOption.items);
-		const relevantItemKey = contextOption.isStacked
-			? itemKeys[0]
-			: itemKeys[itemKeys.length - 1];
-		const isActiveToast = relevantItemKey === item.id;
-
-		if (isActiveToast) {
-			// Resume the timer when the toast becomes active
-			if (!animationFrameRef.current && !isHover) {
-				lastUpdateTimeRef.current = performance.now();
-				animationFrameRef.current = requestAnimationFrame(updateProgress);
-			}
+		const relevantItemKey = getRelevantItemKey(contextOption);
+		if (relevantItemKey === item.id) {
+			resumeTimer();
 		} else {
-			// Pause the timer and store the elapsed time when the toast becomes inactive
-			if (animationFrameRef.current) {
-				cancelAnimationFrame(animationFrameRef.current);
-				animationFrameRef.current = null;
-
-				if (activeStartTimeRef.current !== null) {
-					// Add the active time to the total elapsed time when the toast becomes inactive
-					elapsedTimeRef.current +=
-						performance.now() - activeStartTimeRef.current;
-					activeStartTimeRef.current = null;
-				}
-			}
+			pauseTimer();
 		}
 
 		return () => {
@@ -133,28 +109,32 @@ const Toast = ({ item }: { item: ToastItemType }) => {
 		};
 	}, [contextOption.items, item.id, contextOption.isStacked, updateProgress, isHover]);
 
-	const handleMouseEnter = () => {
-		setHover(true);
-		// Pause the animation and stop updating the elapsed time
+	const resumeTimer = () => {
+		if (!animationFrameRef.current && !isHover) {
+			lastUpdateTimeRef.current = performance.now();
+			animationFrameRef.current = requestAnimationFrame(updateProgress);
+		}
+	};
+
+	const pauseTimer = () => {
 		if (animationFrameRef.current) {
 			cancelAnimationFrame(animationFrameRef.current);
 			animationFrameRef.current = null;
 			if (activeStartTimeRef.current !== null) {
-				elapsedTimeRef.current +=
-					performance.now() - activeStartTimeRef.current;
+				elapsedTimeRef.current += performance.now() - activeStartTimeRef.current;
 				activeStartTimeRef.current = null;
 			}
 		}
 	};
 
+	const handleMouseEnter = () => {
+		setHover(true);
+		pauseTimer();
+	};
+
 	const handleMouseLeave = () => {
 		setHover(false);
-		// Resume the animation and update the activeStartTimeRef
-		if (!animationFrameRef.current) {
-			lastUpdateTimeRef.current = performance.now();
-			activeStartTimeRef.current = performance.now();
-			animationFrameRef.current = requestAnimationFrame(updateProgress);
-		}
+		resumeTimer();
 	};
 
 	return (
@@ -194,6 +174,14 @@ const Toast = ({ item }: { item: ToastItemType }) => {
 			)}
 		</div>
 	);
+};
+
+const useRefs = () => {
+	const animationFrameRef = useRef<number | null>(null);
+	const elapsedTimeRef = useRef<number>(0);
+	const activeStartTimeRef = useRef<number | null>(null);
+	const lastUpdateTimeRef = useRef<number>(performance.now());
+	return { animationFrameRef, elapsedTimeRef, activeStartTimeRef, lastUpdateTimeRef };
 };
 
 export default Toast;
